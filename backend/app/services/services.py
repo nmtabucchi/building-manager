@@ -5,19 +5,30 @@ from uuid import UUID
 
 from app.domain.auth import UserAuthContext
 from app.domain.entities import (
-    Building, Conversation, DashboardSummary, Document, Member, Message, User,
+    Building,
+    Conversation,
+    DashboardSummary,
+    Document,
+    Member,
+    Message,
+    User,
 )
 from app.domain.enums import BuildingRole, DocumentCategory, DocumentStatus
 from app.domain.exceptions import DomainError, PersistenceUnavailableError
 from app.infrastructure.queue.ingestion_queue import IngestionQueue
 from app.infrastructure.storage.storage_gateway import StorageGateway
-from app.services.file_validation import validate_upload
 from app.repositories.document_and_conversation_repositories import (
-    ConversationRepository, DocumentRepository, MessageRepository,
+    ConversationRepository,
+    DocumentRepository,
+    MessageRepository,
 )
 from app.repositories.user_and_building_repositories import (
-    BuildingRepository, DashboardRepository, MemberRepository, UserRepository,
+    BuildingRepository,
+    DashboardRepository,
+    MemberRepository,
+    UserRepository,
 )
+from app.services.file_validation import validate_upload
 
 logger = logging.getLogger(__name__)
 

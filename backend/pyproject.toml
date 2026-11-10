@@ -14,6 +14,8 @@ dependencies = [
     "pymupdf>=1.25",
     "python-docx>=1.1",
     "langchain-text-splitters>=1.0",
+    "anthropic>=1.0",
+    "langgraph>=1.0",
 ]
 
 [project.optional-dependencies]
@@ -33,9 +35,16 @@ include = ["app*"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
 testpaths = ["tests"]
 markers = ["integration: requiere Supabase local"]
 addopts = "-m 'not integration'"
 
 [tool.ruff]
 line-length = 110
+
+[tool.ruff.lint]
+ignore = ["B008"]  # Depends/File/Form/Query en argumentos por defecto: idioma estándar de FastAPI
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["C408", "E501", "E701", "E702", "E401", "I001", "F841", "RUF059"]

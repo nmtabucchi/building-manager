@@ -36,6 +36,22 @@ class Settings(BaseSettings):
     embedding_api_key: SecretStr | None = None
     embedding_dimension: int = 1024
 
+    # Claude (Etapa 4)
+    anthropic_api_key: SecretStr | None = None
+    claude_model: str = "claude-opus-5-5"
+    claude_effort: str = "medium"  # low | medium | high | xhigh | max
+    claude_max_tokens: int = 4096
+    claude_fallbacks: bool = True  # fallback del lado del servidor ante rechazos de seguridad
+    claude_timeout_seconds: float = 120.0
+
+    # RAG
+    rag_top_k: int = Field(default=8, ge=1, le=50)
+    rag_min_similarity: float = Field(default=0.35, ge=-1, le=1)
+    rag_history_messages: int = Field(default=6, ge=0, le=50)
+    rag_context_token_budget: int = Field(default=6000, ge=500)
+    rag_max_question_chars: int = Field(default=2000, ge=50, le=5000)
+    chat_rate_limit_per_minute: int = Field(default=20, ge=1)
+
     # Cliente HTTP hacia PostgREST
     sp_timeout_seconds: float = Field(default=30.0, gt=0)
     sp_read_retries: int = Field(default=2, ge=0, le=5)

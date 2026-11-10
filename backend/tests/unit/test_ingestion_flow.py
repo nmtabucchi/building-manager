@@ -1,13 +1,18 @@
 import asyncio
-from datetime import datetime, timezone
-from uuid import UUID, uuid4
+from datetime import UTC, datetime
+from uuid import uuid4
 
 import pytest
 
 from app.domain.auth import UserAuthContext
 from app.domain.entities import Document
 from app.domain.enums import DocumentCategory, DocumentStatus
-from app.domain.exceptions import ConflictError, NotFoundError, PermissionDeniedError, PersistenceUnavailableError
+from app.domain.exceptions import (
+    ConflictError,
+    NotFoundError,
+    PermissionDeniedError,
+    PersistenceUnavailableError,
+)
 from app.infrastructure.embeddings.embedding_provider import FakeEmbeddingProvider
 from app.infrastructure.queue.ingestion_queue import InMemoryIngestionQueue
 from app.infrastructure.storage.storage_gateway import StorageGateway
@@ -20,7 +25,7 @@ from tests.helpers import make_docx, make_pdf
 DOC_ID = uuid4()
 BID = uuid4()
 AUTH = UserAuthContext(user_id=uuid4(), email=None, jwt="t")
-NOW = datetime(2026, 1, 1, tzinfo=timezone.utc)
+NOW = datetime(2026, 1, 1, tzinfo=UTC)
 
 
 class MemoryStorage(StorageGateway):

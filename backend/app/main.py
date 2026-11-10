@@ -23,7 +23,7 @@ def create_app(settings: Settings | None = None, container: Container | None = N
         yield
         await app.state.container.aclose()
 
-    app = FastAPI(title="Building Manager AI", version="0.3.0", lifespan=lifespan)
+    app = FastAPI(title="Building Manager AI", version="0.4.0", lifespan=lifespan)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origin_list,

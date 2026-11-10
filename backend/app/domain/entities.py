@@ -92,3 +92,21 @@ class DashboardSummary(Entity):
     documentos_procesados: int
     documentos_con_error: int
     total_conversaciones: int
+
+
+class RetrievedChunk(Entity):
+    """Fragmento devuelto por la búsqueda semántica (sp_chunk_buscar_similares)."""
+
+    chunk_id: UUID
+    document_id: UUID
+    building_id: UUID
+    file_name: str
+    titulo: str | None = None
+    categoria: DocumentCategory
+    fecha_documento: date | None = None
+    chunk_index: int
+    page_number: int | None = None
+    page_end: int | None = None
+    content: str
+    metadata: dict[str, Any] = {}
+    similarity: float

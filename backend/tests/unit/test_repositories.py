@@ -1,5 +1,5 @@
 """Cada método de repositorio invoca exactamente el SP de la matriz del catálogo."""
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import UUID
 
 import pytest
@@ -7,15 +7,20 @@ import pytest
 from app.domain.auth import UserAuthContext
 from app.domain.enums import BuildingRole, DocumentCategory, FileType, MessageRole
 from app.repositories.document_and_conversation_repositories import (
-    ConversationRepository, DocumentRepository, MessageRepository,
+    ConversationRepository,
+    DocumentRepository,
+    MessageRepository,
 )
 from app.repositories.user_and_building_repositories import (
-    BuildingRepository, DashboardRepository, MemberRepository, UserRepository,
+    BuildingRepository,
+    DashboardRepository,
+    MemberRepository,
+    UserRepository,
 )
 
 UID = UUID("11111111-1111-1111-1111-111111111111")
 BID = UUID("aaaaaaaa-0000-0000-0000-000000000001")
-NOW = datetime(2026, 1, 1, tzinfo=timezone.utc).isoformat()
+NOW = datetime(2026, 1, 1, tzinfo=UTC).isoformat()
 AUTH = UserAuthContext(user_id=UID, email=None, jwt="t")
 
 BUILDING = {"id": str(BID), "nombre": "E", "direccion": "D", "localidad": "L", "provincia": "P",

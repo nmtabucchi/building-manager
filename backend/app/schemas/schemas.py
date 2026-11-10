@@ -51,3 +51,14 @@ class DocumentOut(Document):
     """Documento sin `storage_path` (dato interno del backend)."""
 
     storage_path: str = Field(default="", exclude=True)
+
+
+class MessageInput(BaseModel):
+    content: str = Field(min_length=1, max_length=2000)
+
+    @field_validator("content")
+    @classmethod
+    def _not_blank(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("no puede estar vacío")
+        return v

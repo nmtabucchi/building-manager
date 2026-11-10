@@ -9,8 +9,13 @@ import respx
 from app.domain.auth import ServiceAuthContext, UserAuthContext
 from app.domain.enums import BuildingRole
 from app.domain.exceptions import (
-    AuthenticationError, ConflictError, InfrastructureError, NotFoundError, PermissionDeniedError,
-    PersistenceUnavailableError, ValidationError,
+    AuthenticationError,
+    ConflictError,
+    InfrastructureError,
+    NotFoundError,
+    PermissionDeniedError,
+    PersistenceUnavailableError,
+    ValidationError,
 )
 from app.infrastructure.database.stored_procedure_client import StoredProcedureClient
 

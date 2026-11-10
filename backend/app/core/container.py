@@ -2,23 +2,40 @@
 import logging
 
 from app.core.config import Settings
+from app.core.rate_limit import SlidingWindowRateLimiter
 from app.core.security import SupabaseJwtVerifier
 from app.infrastructure.database.stored_procedure_client import StoredProcedureClient
 from app.infrastructure.embeddings.embedding_provider import EmbeddingProvider, build_embedding_provider
+from app.infrastructure.llm.llm_provider import ClaudeProvider, LLMProvider
 from app.infrastructure.queue.ingestion_queue import IngestionQueue, InMemoryIngestionQueue
 from app.infrastructure.storage.storage_gateway import StorageGateway, SupabaseStorageGateway
 from app.rag.ingestion.chunker import PageAwareChunker
 from app.rag.ingestion.pipeline import IngestionPipeline
+from app.rag.pipelines.nodes import RagNodes
+from app.rag.pipelines.rag_graph import RagGraphBuilder
+from app.rag.retrieval.retriever import SupabaseRetriever
 from app.repositories.document_and_conversation_repositories import (
-    ConversationRepository, DocumentRepository, MessageRepository,
+    ChunkRepository,
+    ConversationRepository,
+    DocumentRepository,
+    MessageRepository,
 )
 from app.repositories.ingestion_repository import IngestionRepository
 from app.repositories.user_and_building_repositories import (
-    BuildingRepository, DashboardRepository, MemberRepository, UserRepository,
+    BuildingRepository,
+    DashboardRepository,
+    MemberRepository,
+    UserRepository,
 )
+from app.services.chat_service import ChatService
 from app.services.ingestion_service import IngestionService
 from app.services.services import (
-    BuildingService, ConversationService, DashboardService, DocumentService, MemberService, UserService,
+    BuildingService,
+    ConversationService,
+    DashboardService,
+    DocumentService,
+    MemberService,
+    UserService,
 )
 
 logger = logging.getLogger(__name__)
@@ -27,7 +44,8 @@ logger = logging.getLogger(__name__)
 class Container:
     def __init__(self, settings: Settings, sp_client: StoredProcedureClient | None = None,
                  jwt_verifier: SupabaseJwtVerifier | None = None, storage: StorageGateway | None = None,
-                 embeddings: EmbeddingProvider | None = None, queue: IngestionQueue | None = None):
+                 embeddings: EmbeddingProvider | None = None, queue: IngestionQueue | None = None,
+                 llm: LLMProvider | None = None):
         self.settings = settings
         self.sp_client = sp_client or StoredProcedureClient(settings)
         self.jwt_verifier = jwt_verifier or SupabaseJwtVerifier(settings)
@@ -49,7 +67,14 @@ class Container:
         self.member_service = MemberService(MemberRepository(sp))
         self.document_service = DocumentService(
             DocumentRepository(sp), self.storage, self.ingestion_queue, settings.max_upload_mb * 1024 * 1024)
-        self.conversation_service = ConversationService(ConversationRepository(sp), MessageRepository(sp))
+        conversations, messages = ConversationRepository(sp), MessageRepository(sp)
+        self.conversation_service = ConversationService(conversations, messages)
+
+        self.llm = llm or ClaudeProvider(settings)
+        retriever = SupabaseRetriever(self.embeddings, ChunkRepository(sp))
+        self.rag_graph = RagGraphBuilder(RagNodes(settings, messages, retriever, self.llm)).build()
+        self.chat_service = ChatService(
+            conversations, messages, self.rag_graph, SlidingWindowRateLimiter(settings.chat_rate_limit_per_minute))
 
     async def start(self) -> None:
         """Arranca el worker y re-encola documentos pendientes o estancados (recuperación tras reinicio)."""

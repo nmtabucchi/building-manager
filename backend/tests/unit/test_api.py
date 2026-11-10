@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import UUID
 
 import jwt
@@ -9,7 +9,7 @@ from app.core.container import Container
 from app.domain.exceptions import NotFoundError
 from app.main import create_app
 
-NOW = datetime(2026, 1, 1, tzinfo=timezone.utc).isoformat()
+NOW = datetime(2026, 1, 1, tzinfo=UTC).isoformat()
 UID = "11111111-1111-1111-1111-111111111111"
 BID = "aaaaaaaa-0000-0000-0000-000000000001"
 
@@ -46,7 +46,7 @@ class FakeSP:
 
 def token(settings, **over):
     claims = {"sub": UID, "aud": "authenticated", "iss": settings.supabase_issuer,
-              "exp": int(datetime.now(timezone.utc).timestamp()) + 3600, "email": "a@b.c", **over}
+              "exp": int(datetime.now(UTC).timestamp()) + 3600, "email": "a@b.c", **over}
     return jwt.encode(claims, settings.supabase_jwt_secret.get_secret_value(), algorithm="HS256")
 
 
@@ -260,3 +260,87 @@ def test_reprocesar_y_url_de_descarga(upload_env, sp, headers):
     assert queue.ids == [UUID(UID)]
     r = c.get(f"/api/v1/documents/{UID}/download-url", headers=headers)
     assert r.json() == {"url": "https://signed/SECRETO/ruta.pdf", "expires_in": 300}
+
+
+# ------------------------------------------------------------- Etapa 4: chat
+import json as _json
+
+from app.domain.exceptions import LLMUnavailableError
+from app.infrastructure.llm.llm_provider import LLMProvider, LLMResult
+
+CHUNK_ROW = {"chunk_id": "cccccccc-0000-0000-0000-000000000001", "document_id": UID, "building_id": BID,
+             "file_name": "reglamento.pdf", "titulo": None, "categoria": "reglamento", "fecha_documento": None,
+             "chunk_index": 0, "page_number": 4, "page_end": None, "content": "Se prohíben mascotas grandes.",
+             "metadata": {}, "similarity": 0.8}
+CONV = {"id": UID, "building_id": BID, "building_nombre": "Edificio Demo", "titulo": None, "total_mensajes": 0,
+        "ultimo_mensaje_at": None, "created_at": NOW, "updated_at": NOW}
+
+
+class ScriptedLLM(LLMProvider):
+    def __init__(self, error=None):
+        self.error = error
+
+    async def generate_text(self, system, user, *, max_tokens, effort):
+        return LLMResult("q", "m")
+
+    async def generate_structured(self, system, user, schema, *, max_tokens, effort):
+        if self.error:
+            raise self.error
+        data = {"respuesta": "Prohibidas [F1].", "cobertura": "completa", "interpretaciones": [],
+                "citas": [{"fragmento_id": "F1", "cita_textual": "mascotas grandes"}]}
+        return LLMResult(_json.dumps(data), "claude-test", {"input_tokens": 1, "output_tokens": 1}, data=data)
+
+
+def _chat_client(settings, sp, llm, **over):
+    s = settings.model_copy(update=over)
+    return TestClient(create_app(s, Container(s, sp_client=sp, llm=llm)))
+
+
+def _prepare(sp):
+    def message(role):
+        return {"id": UID, "conversation_id": UID, "role": role, "content": "x", "sources": [], "metadata": {}, "created_at": NOW}
+    sp.responses.update({
+        "sp_conversation_obtener_por_id": [CONV], "sp_message_listar_por_conversacion": [],
+        "sp_chunk_buscar_similares": [CHUNK_ROW], "sp_message_crear": [message("user")]})
+
+
+def test_preguntar_al_asistente_flujo_completo(settings, sp, headers):
+    _prepare(sp)
+    with _chat_client(settings, sp, ScriptedLLM()) as c:
+        r = c.post(f"/api/v1/conversations/{UID}/messages", headers=headers, json={"content": "¿Hay mascotas?"})
+    assert r.status_code == 201
+    names = [n for n, *_ in sp.calls]
+    assert names.index("sp_conversation_obtener_por_id") < names.index("sp_chunk_buscar_similares")
+    assert names.count("sp_message_crear") == 2
+    search = next(p for n, p, _ in sp.calls if n == "sp_chunk_buscar_similares")
+    assert str(search["p_building_id"]) == BID and len(search["p_query_embedding"]) == 1024  # edificio sale de la conversación
+    saved = [p for n, p, _ in sp.calls if n == "sp_message_crear"][1]
+    assert saved["p_role"] == "assistant" and saved["p_sources"][0]["file_name"] == "reglamento.pdf"
+    assert saved["p_metadata"]["cobertura"] == "completa"
+    assert not any("service" in repr(a) for *_, a in sp.calls)
+
+
+def test_preguntar_validaciones_y_auth(settings, sp, headers):
+    _prepare(sp)
+    with _chat_client(settings, sp, ScriptedLLM()) as c:
+        url = f"/api/v1/conversations/{UID}/messages"
+        assert c.post(url, json={"content": "hola"}).status_code == 401
+        assert c.post(url, headers=headers, json={"content": "   "}).status_code == 422
+        assert c.post(url, headers=headers, json={"content": "x" * 2001}).status_code == 422
+    assert sp.calls == []
+
+
+def test_error_de_claude_es_502(settings, sp, headers):
+    _prepare(sp)
+    with _chat_client(settings, sp, ScriptedLLM(LLMUnavailableError("Claude no disponible"))) as c:
+        r = c.post(f"/api/v1/conversations/{UID}/messages", headers=headers, json={"content": "hola"})
+    assert r.status_code == 502 and r.json()["error"]["code"] == "UPSTREAM_ERROR"
+
+
+def test_rate_limit_429(settings, sp, headers):
+    _prepare(sp)
+    with _chat_client(settings, sp, ScriptedLLM(), chat_rate_limit_per_minute=1) as c:
+        url = f"/api/v1/conversations/{UID}/messages"
+        assert c.post(url, headers=headers, json={"content": "uno"}).status_code == 201
+        r = c.post(url, headers=headers, json={"content": "dos"})
+    assert r.status_code == 429 and r.json()["error"]["code"] == "RATE_LIMITED"

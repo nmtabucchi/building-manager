@@ -39,6 +39,22 @@ class UnsupportedFileTypeError(DomainError):
     code, http_status = "UNSUPPORTED_FILE_TYPE", 415
 
 
+class RateLimitError(DomainError):
+    code, http_status = "RATE_LIMITED", 429
+
+
+class LLMUnavailableError(DomainError):
+    """Claude no disponible, sin créditos, truncado, etc. Se informa como error de servicio externo."""
+
+    code, http_status = "UPSTREAM_ERROR", 502
+
+
+class LLMRefusalError(DomainError):
+    """Claude rechazó la solicitud por sus clasificadores de seguridad."""
+
+    code, http_status = "UPSTREAM_ERROR", 502
+
+
 class InfrastructureError(DomainError):
     """Error de configuración o de contrato con la base (p. ej. SP inexistente)."""
 

@@ -6,12 +6,18 @@ import respx
 
 from app.domain.enums import FileType
 from app.domain.exceptions import (
-    FileTooLargeError, InfrastructureError, NotFoundError, PersistenceUnavailableError,
-    UnsupportedFileTypeError, ValidationError,
+    FileTooLargeError,
+    InfrastructureError,
+    NotFoundError,
+    PersistenceUnavailableError,
+    UnsupportedFileTypeError,
+    ValidationError,
 )
 from app.infrastructure.embeddings import embedding_provider as ep
 from app.infrastructure.embeddings.embedding_provider import (
-    FakeEmbeddingProvider, VoyageEmbeddingProvider, build_embedding_provider,
+    FakeEmbeddingProvider,
+    VoyageEmbeddingProvider,
+    build_embedding_provider,
 )
 from app.infrastructure.storage.storage_gateway import SupabaseStorageGateway
 from app.services.file_validation import sanitize_file_name, validate_upload
@@ -127,7 +133,8 @@ def test_rechaza_archivos_invalidos(name, data, exc):
 
 
 def test_rechaza_zip_que_no_es_docx():
-    import io, zipfile
+    import io
+    import zipfile
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w") as z:
         z.writestr("otro.txt", "x")

@@ -8,7 +8,7 @@ from typing import Any
 from uuid import UUID
 
 from app.domain.auth import UserAuthContext
-from app.domain.entities import Conversation, Document, Message
+from app.domain.entities import Conversation, Document, Message, RetrievedChunk
 from app.domain.enums import DocumentCategory, DocumentStatus, FileType, MessageRole
 from app.repositories.base_repository import BaseRepository
 
@@ -90,3 +90,16 @@ class MessageRepository(BaseRepository):
             "p_conversation_id": conversation_id, "p_limit": limit, "p_antes_de": antes_de,
         }, auth=auth, read_only=True)
         return self._many(Message, rows)
+
+
+class ChunkRepository(BaseRepository):
+    """Búsqueda semántica: el vector viaja al SP; el filtrado por edificio ocurre en la base."""
+
+    async def buscar_similares(self, auth: UserAuthContext, building_id: UUID, query_embedding: list[float],
+                               match_count: int = 8, min_similarity: float = 0.0,
+                               categorias: list[DocumentCategory] | None = None) -> list[RetrievedChunk]:
+        rows = await self._sp.call("sp_chunk_buscar_similares", {
+            "p_building_id": building_id, "p_query_embedding": query_embedding,
+            "p_match_count": match_count, "p_min_similarity": min_similarity, "p_categorias": categorias,
+        }, auth=auth, read_only=True)
+        return self._many(RetrievedChunk, rows)

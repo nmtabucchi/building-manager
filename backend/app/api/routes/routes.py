@@ -3,6 +3,7 @@ from datetime import date, datetime
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, Form, Query, Response, UploadFile, status
+from pydantic import BaseModel
 
 from app.api.dependencies import get_auth_context, get_container
 from app.core.container import Container
@@ -11,7 +12,12 @@ from app.domain.entities import Building, Conversation, DashboardSummary, Member
 from app.domain.enums import DocumentCategory, DocumentStatus
 from app.domain.exceptions import ValidationError
 from app.schemas.schemas import (
-    BuildingInput, ConversationInput, DocumentMetadataInput, DocumentOut, MemberInput,
+    BuildingInput,
+    ConversationInput,
+    DocumentMetadataInput,
+    DocumentOut,
+    MemberInput,
+    MessageInput,
 )
 
 router = APIRouter()
@@ -155,3 +161,16 @@ async def get_conversation(conversation_id: UUID, auth: UserAuthContext = Auth, 
 async def list_messages(conversation_id: UUID, limit: int = Query(50, ge=1, le=200),
                         before: datetime | None = None, auth: UserAuthContext = Auth, c: Container = Ctr):
     return await c.conversation_service.mensajes(auth, conversation_id, limit, before)
+
+
+class ChatExchange(BaseModel):
+    user_message: Message
+    assistant_message: Message
+
+
+@router.post("/conversations/{conversation_id}/messages", response_model=ChatExchange,
+             status_code=status.HTTP_201_CREATED, tags=["conversations"])
+async def ask_assistant(conversation_id: UUID, body: MessageInput, auth: UserAuthContext = Auth,
+                        c: Container = Ctr):
+    user_message, assistant_message = await c.chat_service.preguntar(auth, conversation_id, body.content)
+    return ChatExchange(user_message=user_message, assistant_message=assistant_message)
