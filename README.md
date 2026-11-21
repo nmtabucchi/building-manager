@@ -6,6 +6,8 @@ documentación en lenguaje natural mediante RAG (Claude + pgvector sobre Supabas
 **Stack:** Next.js + React (JavaScript) · FastAPI (Python, POO) · Claude API · LangChain (chunking) · LangGraph ·
 Supabase (PostgreSQL, pgvector, Auth, Storage) · PyMuPDF · python-docx · Voyage AI (embeddings).
 
+**LLM:** Claude por defecto; Gemini como alternativa con `LLM_PROVIDER=gemini` + `GEMINI_API_KEY` (ver `backend/.env.example`).
+
 **Regla central:** Python nunca ejecuta SQL. Todo acceso a datos pasa por stored procedures (`sp_*`) invocados por
 Supabase RPC (`Route → Service → Repository → StoredProcedureClient → sp_*`).
 
@@ -52,6 +54,16 @@ Usuarios de prueba del seed (solo local): `admin.demo@example.test`, `lector.dem
 `otro.demo@example.test`, contraseña `Demo-local-123`. También se puede registrar uno nuevo desde `/login`.
 
 Las claves `SUPABASE_SERVICE_ROLE_KEY`, `ANTHROPIC_API_KEY` y `EMBEDDING_API_KEY` viven **solo** en `backend/.env`.
+
+## Conexión directa a un proyecto Supabase en la nube (sin CLI ni Docker)
+
+1. Aplicar los 11 archivos de `supabase/migrations/` en orden (SQL Editor del dashboard, o `psql` con la cadena
+   de conexión). No ejecutar `seed.sql`.
+2. En *Settings → API → Exposed schemas* dejar solo `public` (así las tablas del esquema `app` no son accesibles por REST).
+3. `backend/.env`: `SUPABASE_URL`, `SUPABASE_ANON_KEY` (clave `sb_publishable_...`) y `SUPABASE_SERVICE_ROLE_KEY`
+   (clave `sb_secret_...`, **solo backend**). Las claves `sb_secret_` se envían únicamente en la cabecera `apikey`.
+4. `frontend/.env.local`: `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_ANON_KEY` (**publishable**, nunca la secret).
+5. Con el correo de confirmación activo habrá que confirmar cada cuenta; para pruebas se puede desactivar en *Authentication → Providers → Email*.
 
 ## Pruebas
 

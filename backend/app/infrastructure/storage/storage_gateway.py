@@ -4,7 +4,7 @@ from urllib.parse import quote
 
 import httpx
 
-from app.core.config import Settings
+from app.core.config import Settings, service_key_headers
 from app.domain.exceptions import InfrastructureError, NotFoundError, PersistenceUnavailableError
 
 
@@ -33,7 +33,7 @@ class SupabaseStorageGateway(StorageGateway):
         if self._key is None:
             raise InfrastructureError("SUPABASE_SERVICE_ROLE_KEY no está configurada")
         secret = self._key.get_secret_value()
-        return {"apikey": secret, "Authorization": f"Bearer {secret}"}
+        return service_key_headers(secret)
 
     def _object_url(self, path: str, prefix: str = "") -> str:
         return f"{self._base}/object/{prefix}{self._bucket}/{quote(path, safe='/')}"

@@ -35,6 +35,14 @@ class Settings(BaseSettings):
     embedding_model: str = "voyage-3.5"
     embedding_api_key: SecretStr | None = None
     embedding_dimension: int = 1024
+    # Límites del plan del proveedor (0 = sin límite). Voyage sin método de pago: 3 RPM y 10.000 TPM.
+    embedding_max_rpm: int = Field(default=0, ge=0)
+    embedding_max_tpm: int = Field(default=0, ge=0)
+
+    # Proveedor de LLM: 'anthropic' (por defecto) o 'gemini'
+    llm_provider: str = "anthropic"
+    gemini_api_key: SecretStr | None = None
+    gemini_model: str = "gemini-3.5-flash-lite"
 
     # Claude (Etapa 4)
     anthropic_api_key: SecretStr | None = None
@@ -71,6 +79,17 @@ class Settings(BaseSettings):
     @property
     def supabase_issuer(self) -> str:
         return self.supabase_url.rstrip("/") + "/auth/v1"
+
+
+def service_key_headers(secret: str) -> dict[str, str]:
+    """Cabeceras de autenticación con la clave de servicio.
+
+    Las claves nuevas de Supabase (`sb_secret_...`) no son JWT: solo se envían en `apikey` y el gateway las
+    traduce a rol service_role. Las claves legadas (JWT `service_role`) además van como Bearer.
+    """
+    if secret.startswith("sb_secret_"):
+        return {"apikey": secret}
+    return {"apikey": secret, "Authorization": f"Bearer {secret}"}
 
 
 @lru_cache

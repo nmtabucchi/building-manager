@@ -84,6 +84,6 @@ def test_archivos_env_reales_estan_ignorados_y_los_ejemplos_no_tienen_secretos()
 
 
 def test_no_hay_credenciales_hardcodeadas_en_app():
-    pattern = re.compile(r"sk-ant-[A-Za-z0-9]|eyJ[A-Za-z0-9_-]{30,}|sb_secret_|pa-[A-Za-z0-9]{20,}")
+    pattern = re.compile(r"sk-ant-[A-Za-z0-9]|eyJ[A-Za-z0-9_-]{30,}|sb_secret_[A-Za-z0-9_-]{20,}|pa-[A-Za-z0-9]{20,}")
     for path in (ROOT / "backend" / "app").rglob("*.py"):
         assert not pattern.search(path.read_text(encoding="utf-8")), path

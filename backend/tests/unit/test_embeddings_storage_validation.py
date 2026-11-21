@@ -55,7 +55,7 @@ async def test_voyage_reintenta_429_y_falla_con_4xx(monkeypatch):
     assert await VoyageEmbeddingProvider("k", "m").embed_query("q") == [1.0]
     assert route.call_count == 2
     respx.post(VoyageEmbeddingProvider.URL).mock(return_value=httpx.Response(401))
-    with pytest.raises(InfrastructureError):
+    with pytest.raises(PersistenceUnavailableError, match="EMBEDDING_API_KEY"):
         await VoyageEmbeddingProvider("bad", "m").embed_query("q")
     respx.post(VoyageEmbeddingProvider.URL).mock(return_value=httpx.Response(503))
     with pytest.raises(PersistenceUnavailableError):
@@ -159,3 +159,95 @@ def test_nombre_vacio_o_enorme():
     for bad in ("", "   ", "a" * 300 + ".pdf"):
         with pytest.raises(ValidationError):
             sanitize_file_name(bad)
+
+
+# ------------------------------------------------------------ límites de uso
+async def test_throttle_respeta_rpm_con_reloj_simulado():
+    from app.infrastructure.embeddings.embedding_provider import RateThrottle
+    now = [0.0]
+    slept = []
+
+    async def fake_sleep(s):
+        slept.append(s)
+        now[0] += s
+
+    t = RateThrottle(rpm=3, clock=lambda: now[0], sleep=fake_sleep)
+    for _ in range(3):
+        await t.acquire(10)
+    assert slept == []
+    await t.acquire(10)  # la 4.ª en la misma ventana debe esperar ~60 s
+    assert len(slept) == 1 and 59 <= slept[0] <= 60
+
+
+async def test_throttle_respeta_tpm():
+    from app.infrastructure.embeddings.embedding_provider import RateThrottle
+    now = [0.0]
+    slept = []
+
+    async def fake_sleep(s):
+        slept.append(s)
+        now[0] += s
+
+    t = RateThrottle(tpm=1000, clock=lambda: now[0], sleep=fake_sleep)
+    await t.acquire(700)
+    now[0] = 10
+    await t.acquire(200)  # 900 <= 1000: sin espera
+    assert slept == []
+    await t.acquire(300)  # 1200 > 1000: espera a que expire la primera (700) -> ~50 s
+    assert len(slept) == 1 and 49 <= slept[0] <= 50
+
+
+async def test_throttle_desactivado_no_espera():
+    from app.infrastructure.embeddings.embedding_provider import RateThrottle
+    t = RateThrottle()
+    assert not t.enabled
+    await t.acquire(10**9)
+
+
+async def test_voyage_divide_lotes_segun_el_cupo_de_tokens():
+    calls = []
+
+    @respx.mock
+    async def run():
+        def handler(request):
+            n = len(json.loads(request.content)["input"])
+            calls.append(n)
+            return httpx.Response(200, json={"data": [{"index": i, "embedding": [float(i)]} for i in range(n)]})
+
+        respx.post(VoyageEmbeddingProvider.URL).mock(side_effect=handler)
+        from app.infrastructure.embeddings.embedding_provider import RateThrottle
+        # throttle desactivado: aquí solo se prueba la división en lotes (presupuesto por petición: 700 tokens)
+        p = VoyageEmbeddingProvider("k", "m", tpm=1000, throttle=RateThrottle())
+        return await p.embed_documents(["x" * 600] * 10)  # 200 tokens estimados cada uno
+
+    out = await run()
+    assert len(out) == 10 and calls == [3, 3, 3, 1] and sum(calls) == 10
+
+
+@respx.mock
+async def test_voyage_429_respeta_retry_after(monkeypatch):
+    sleeps = []
+
+    async def rec_sleep(s):
+        sleeps.append(s)
+
+    monkeypatch.setattr(ep.asyncio, "sleep", rec_sleep)
+    respx.post(VoyageEmbeddingProvider.URL).mock(side_effect=[
+        httpx.Response(429, headers={"retry-after": "7"}),
+        httpx.Response(200, json={"data": [{"index": 0, "embedding": [1.0]}]})])
+    assert await VoyageEmbeddingProvider("k", "m").embed_query("q") == [1.0]
+    assert sleeps == [7.0]
+
+
+@respx.mock
+async def test_voyage_429_sin_retry_after_espera_a_que_se_renueve_la_cuota(monkeypatch):
+    sleeps = []
+
+    async def rec_sleep(s):
+        sleeps.append(s)
+
+    monkeypatch.setattr(ep.asyncio, "sleep", rec_sleep)
+    respx.post(VoyageEmbeddingProvider.URL).mock(return_value=httpx.Response(429))
+    with pytest.raises(PersistenceUnavailableError, match="límite"):
+        await VoyageEmbeddingProvider("k", "m", retries=3).embed_query("q")
+    assert sleeps == [20.0, 40.0]

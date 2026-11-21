@@ -18,7 +18,7 @@ from uuid import UUID
 
 import httpx
 
-from app.core.config import Settings
+from app.core.config import Settings, service_key_headers
 from app.domain.auth import AuthContext, ServiceAuthContext, UserAuthContext
 from app.domain.exceptions import (
     AuthenticationError,
@@ -146,7 +146,7 @@ class StoredProcedureClient:
             if key is None:
                 raise InfrastructureError("SUPABASE_SERVICE_ROLE_KEY no está configurada")
             secret = key.get_secret_value()
-            return {"apikey": secret, "Authorization": f"Bearer {secret}", "Content-Type": "application/json"}
+            return {**service_key_headers(secret), "Content-Type": "application/json"}
         raise InfrastructureError("Contexto de autenticación no soportado")
 
     @staticmethod

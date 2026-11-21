@@ -6,7 +6,8 @@ from app.core.rate_limit import SlidingWindowRateLimiter
 from app.core.security import SupabaseJwtVerifier
 from app.infrastructure.database.stored_procedure_client import StoredProcedureClient
 from app.infrastructure.embeddings.embedding_provider import EmbeddingProvider, build_embedding_provider
-from app.infrastructure.llm.llm_provider import ClaudeProvider, LLMProvider
+from app.infrastructure.llm.factory import build_llm_provider
+from app.infrastructure.llm.llm_provider import LLMProvider
 from app.infrastructure.queue.ingestion_queue import IngestionQueue, InMemoryIngestionQueue
 from app.infrastructure.storage.storage_gateway import StorageGateway, SupabaseStorageGateway
 from app.rag.ingestion.chunker import PageAwareChunker
@@ -70,7 +71,7 @@ class Container:
         conversations, messages = ConversationRepository(sp), MessageRepository(sp)
         self.conversation_service = ConversationService(conversations, messages)
 
-        self.llm = llm or ClaudeProvider(settings)
+        self.llm = llm or build_llm_provider(settings)
         retriever = SupabaseRetriever(self.embeddings, ChunkRepository(sp))
         self.rag_graph = RagGraphBuilder(RagNodes(settings, messages, retriever, self.llm)).build()
         self.chat_service = ChatService(

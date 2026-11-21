@@ -1,4 +1,5 @@
 import json
+from pydantic import SecretStr
 from datetime import date
 from uuid import UUID
 
@@ -112,3 +113,13 @@ async def test_call_one_exige_una_fila(client, user):
     with pytest.raises(InfrastructureError):
         await client.call_one("sp_x", {}, auth=user)
     assert await client.call_optional("sp_x", {}, auth=user) is None
+
+
+@respx.mock
+async def test_clave_secreta_nueva_solo_va_en_apikey(settings):
+    """Las claves sb_secret_ no son JWT: no deben enviarse como Bearer."""
+    client = StoredProcedureClient(settings.model_copy(update={"supabase_service_role_key": SecretStr("sb_secret_abc")}))
+    route = respx.post(f"{RPC}/sp_ingesta_document_obtener").mock(return_value=httpx.Response(200, json=[]))
+    await client.call("sp_ingesta_document_obtener", {}, auth=ServiceAuthContext())
+    headers = route.calls[0].request.headers
+    assert headers["apikey"] == "sb_secret_abc" and "authorization" not in headers

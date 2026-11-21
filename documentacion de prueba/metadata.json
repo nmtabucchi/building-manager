@@ -1,0 +1,74 @@
+[
+  {
+    "file": "documentos/01_reglamento_copropiedad.pdf",
+    "building": "Edificio Los Tilos",
+    "city": "Ciudad Autónoma de Buenos Aires",
+    "document_type": "reglamento_copropiedad",
+    "language": "es",
+    "synthetic": true,
+    "notes": "Documento ficticio; no usar como asesoramiento legal ni como dato real."
+  },
+  {
+    "file": "documentos/02_reglamento_uso_espacios_comunes.pdf",
+    "building": "Edificio Los Tilos",
+    "city": "Ciudad Autónoma de Buenos Aires",
+    "document_type": "reglamento_uso_espacios_comunes",
+    "language": "es",
+    "synthetic": true,
+    "notes": "Documento ficticio; no usar como asesoramiento legal ni como dato real."
+  },
+  {
+    "file": "documentos/03_actas_asamblea_2024_2026.pdf",
+    "building": "Edificio Los Tilos",
+    "city": "Ciudad Autónoma de Buenos Aires",
+    "document_type": "actas_asamblea_2024_2026",
+    "language": "es",
+    "synthetic": true,
+    "notes": "Documento ficticio; no usar como asesoramiento legal ni como dato real."
+  },
+  {
+    "file": "documentos/04_manual_mantenimiento_instalaciones.pdf",
+    "building": "Edificio Los Tilos",
+    "city": "Ciudad Autónoma de Buenos Aires",
+    "document_type": "manual_mantenimiento_instalaciones",
+    "language": "es",
+    "synthetic": true,
+    "notes": "Documento ficticio; no usar como asesoramiento legal ni como dato real."
+  },
+  {
+    "file": "documentos/05_informe_incidentes_reclamos.pdf",
+    "building": "Edificio Los Tilos",
+    "city": "Ciudad Autónoma de Buenos Aires",
+    "document_type": "informe_incidentes_reclamos",
+    "language": "es",
+    "synthetic": true,
+    "notes": "Documento ficticio; no usar como asesoramiento legal ni como dato real."
+  },
+  {
+    "file": "documentos/06_contratos_proveedores.pdf",
+    "building": "Edificio Los Tilos",
+    "city": "Ciudad Autónoma de Buenos Aires",
+    "document_type": "contratos_proveedores",
+    "language": "es",
+    "synthetic": true,
+    "notes": "Documento ficticio; no usar como asesoramiento legal ni como dato real."
+  },
+  {
+    "file": "documentos/07_liquidacion_expensas_octubre_2026.pdf",
+    "building": "Edificio Los Tilos",
+    "city": "Ciudad Autónoma de Buenos Aires",
+    "document_type": "liquidacion_expensas_octubre_2026",
+    "language": "es",
+    "synthetic": true,
+    "notes": "Documento ficticio; no usar como asesoramiento legal ni como dato real."
+  },
+  {
+    "file": "documentos/08_comunicaciones_administracion.pdf",
+    "building": "Edificio Los Tilos",
+    "city": "Ciudad Autónoma de Buenos Aires",
+    "document_type": "comunicaciones_administracion",
+    "language": "es",
+    "synthetic": true,
+    "notes": "Documento ficticio; no usar como asesoramiento legal ni como dato real."
+  }
+]
