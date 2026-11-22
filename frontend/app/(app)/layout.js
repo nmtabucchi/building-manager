@@ -26,7 +26,7 @@ export default function AppLayout({ children }) {
   return (
     <div className="shell">
       <aside className="sidebar">
-        <div className="brand">🏢 Building Manager</div>
+        <div className="brand"><img className="brand-logo" src="/logo.png" alt="" />Building Manager</div>
         <nav className="nav">
           {NAV.map((n) => (
             <Link key={n.href} href={n.href} className={pathname.startsWith(n.href) ? "active" : ""}>{n.label}</Link>

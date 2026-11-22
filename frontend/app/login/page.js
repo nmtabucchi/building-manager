@@ -46,7 +46,7 @@ export default function LoginPage() {
   return (
     <div className="auth-wrap">
       <form className="card auth-card" onSubmit={submit}>
-        <h1>Building Manager</h1>
+        <div className="brand"><img className="brand-logo" src="/logo.png" alt="" />Building Manager</div>
         <p className="muted">{mode === "login" ? "Inicia sesión para continuar" : "Crea tu cuenta"}</p>
         {error && <div className="alert">{error}</div>}
         {info && <div className="notice">{info}</div>}
